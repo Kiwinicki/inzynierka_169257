@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import trackio as wandb
-from models import PlainCNN, ResNet
+from .models import PlainCNN, ResNet
 from .data_loaders import get_data_loaders
 from pathlib import Path
 
