@@ -17,16 +17,16 @@ zachowań konsumenckich.
 
 ## Setup
 1. Clone the repo
-2. Install dependencies: `pip install -r requirements.txt`
+2. Install dependencies: `pip install .`
 3. Download datasets: Run `python src/download_data.py`
 4. Train models: Run `python -m src.train`
-5. Launch app: `gradio app/app.py`
+5. Launch app: `gradio app.py`
 
 ## Project Structure
 - `data/`: Datasets
 - `models/`: Trained model weights
 - `src/`: Source code
-- `app/`: Gradio web app
+- `app.py`: Gradio web app
 
 ## TODO
 

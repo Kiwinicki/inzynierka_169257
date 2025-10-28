@@ -6,8 +6,8 @@ import numpy as np
 from models import PlainCNN, ResNet
 from src.dataset import CLASS_LABELS
 
-model = ResNet(base_ch=32, n_classes=len(CLASS_LABELS))
-model.load_state_dict(torch.load("checkpoints/ResNet-2ep.ckpt"))
+model = PlainCNN(base_ch=32, n_classes=len(CLASS_LABELS))
+model.load_state_dict(torch.load("./checkpoints/PlainCNN-1ep.ckpt"))
 model.eval()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)

@@ -8,7 +8,7 @@ from pathlib import Path
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = PlainCNN(base_ch=32, n_classes=8).to(device)
-EPOCHS = 20
+EPOCHS = 1
 train_loader, val_loader, _ = get_data_loaders(batch_size=64)
 criterion = nn.KLDivLoss(reduction="batchmean")
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
@@ -48,7 +48,7 @@ for epoch in range(EPOCHS):
     print("Validation loss:", val_loss)
 
 
-Path("../checkpoints/").mkdir(exist_ok=True)
+Path("./checkpoints/").mkdir(exist_ok=True)
 torch.save(
-    model.state_dict(), f"../checkpoints/{model.__class__.__name__}-{EPOCHS}ep.ckpt"
+    model.state_dict(), f"./checkpoints/{model.__class__.__name__}-{EPOCHS}ep.ckpt"
 )
