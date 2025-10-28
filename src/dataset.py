@@ -17,8 +17,14 @@ CLASS_LABELS = [
     "contempt",
 ]
 
+
 class FERDataset(Dataset):
-    def __init__(self, data_dir="../data", transform=None, usage: Literal["Training", "PublicTest", "PrivateTest"] ="Training"):
+    def __init__(
+        self,
+        data_dir="../data",
+        transform=None,
+        usage: Literal["Training", "PublicTest", "PrivateTest"] = "Training",
+    ):
         data_dir = Path(data_dir)
         fer2013 = pd.read_csv(data_dir / "fer2013.csv")
         fer_plus = pd.read_csv(data_dir / "fer2013new.csv")

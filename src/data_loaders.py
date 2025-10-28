@@ -42,4 +42,3 @@ def get_data_loaders(data_dir="./data", batch_size=32, num_workers=4):
     )
 
     return train_loader, val_loader, test_loader
-

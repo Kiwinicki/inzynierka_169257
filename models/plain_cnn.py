@@ -1,8 +1,9 @@
 import torch
 from torch import nn
+from models.base import BaseCNN
 
 
-class PlainCNN(nn.Module):
+class PlainCNN(BaseCNN):
     def __init__(self, base_ch, n_classes):
         super().__init__()
         self.layers = nn.Sequential(

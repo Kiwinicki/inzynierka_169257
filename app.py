@@ -12,6 +12,7 @@ model.eval()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
+
 def preprocess_image(image):
     transform = transforms.Compose(
         [
@@ -36,10 +37,7 @@ def predict_emotion(image):
     return (
         predicted_emotion,
         confidence,
-        {
-            CLASS_LABELS[i]: float(probabilities[i])
-            for i in range(len(CLASS_LABELS))
-        },
+        {CLASS_LABELS[i]: float(probabilities[i]) for i in range(len(CLASS_LABELS))},
     )
 
 
@@ -54,8 +52,7 @@ iface = gr.Interface(
     title="Emotion Recognition",
     description="Upload an image to detect the emotion.",
     allow_flagging="never",
-)   
+)
 
 if __name__ == "__main__":
     iface.launch()
-
