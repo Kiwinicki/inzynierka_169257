@@ -26,18 +26,17 @@ zachowań konsumenckich.
 - `data/`: Datasets
 - `models/`: Trained model weights
 - `src/`: Source code
-- `app.py`: Gradio web app
 
 ## TODO
 
 [x] Implement plain CNN and base training loop (baseline)
 [ ] Data cleaning
-[ ] GFLOPs and memory consumption estimation code of each model (training and inference)
+[x] GFLOPs and memory consumption estimation code of each model (training and inference)
 [ ] Data augmentation
 [ ] Logging with trackio
 [ ] Evaluate models on test set, compute confusion matrices, precision/recall/F1
 [ ] Model comparison: accuracy, training/inference speed, memory efficiency
-[ ] Gradio demo app with image upload and prediction
+[-] Gradio demo app with image upload and prediction
 [ ] Deploy the app on Hugging Face Spaces with requirements and model files
 [ ] Final conclusions: best model, best compute/acc model etc. (how each trick contributed to final results)
 [ ] Other stuff: plot overfitting point of each model (in epochs), **justify each decision**, check other optimizers (SGD, Adam, AdamW), early stopping?, lr search, lr scheduler
