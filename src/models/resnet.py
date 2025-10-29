@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from models.base import BaseCNN
+from .base import BaseCNN
 
 
 class ResNetBlock(nn.Module):
