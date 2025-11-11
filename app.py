@@ -3,11 +3,11 @@ import torch
 from torchvision import transforms
 from PIL import Image
 import numpy as np
-from models import PlainCNN, ResNet
+from src.models import PlainCNN, ResNet
 from src.dataset import CLASS_LABELS
 
 model = PlainCNN(base_ch=32, n_classes=len(CLASS_LABELS))
-model.load_state_dict(torch.load("./checkpoints/PlainCNN-1ep.ckpt"))
+model.load_state_dict(torch.load("./checkpoints/PlainCNN-30ep.ckpt"))
 model.eval()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)

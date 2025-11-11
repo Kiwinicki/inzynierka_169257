@@ -4,7 +4,7 @@ from torchvision import transforms
 from .dataset import FERDataset
 
 
-def get_data_loaders(data_dir="./data", batch_size=32, num_workers=4):
+def get_data_loaders(data_dir="./data/fer2013_clean.csv", batch_size=32, num_workers=4):
     """Create data loaders with augmentations"""
 
     train_transform = transforms.Compose(
@@ -22,13 +22,13 @@ def get_data_loaders(data_dir="./data", batch_size=32, num_workers=4):
     )
 
     train_dataset = FERDataset(
-        data_dir=data_dir, transform=train_transform, usage="Training"
+        filename=data_dir, transform=train_transform, usage="Training"
     )
     val_dataset = FERDataset(
-        data_dir=data_dir, transform=val_transform, usage="PublicTest"
+        filename=data_dir, transform=val_transform, usage="PublicTest"
     )
     test_dataset = FERDataset(
-        data_dir=data_dir, transform=val_transform, usage="PrivateTest"
+        filename=data_dir, transform=val_transform, usage="PrivateTest"
     )
 
     train_loader = DataLoader(

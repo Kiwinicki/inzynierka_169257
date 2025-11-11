@@ -15,51 +15,45 @@ CLASS_LABELS = [
     "disgust",
     "fear",
     "contempt",
+    "unknown"
 ]
 
 
 class FERDataset(Dataset):
     def __init__(
         self,
-        data_dir="../data",
+        filename="../data/fer2013_clean.csv",
         transform=None,
         usage: Literal["Training", "PublicTest", "PrivateTest"] = "Training",
     ):
-        data_dir = Path(data_dir)
-        fer2013 = pd.read_csv(data_dir / "fer2013.csv")
-        fer_plus = pd.read_csv(data_dir / "fer2013new.csv")
-        fer_plus = fer_plus.drop(columns=["Image name"])
-
-        self.emotion_cols = CLASS_LABELS
-        all_cols = self.emotion_cols + ["unknown", "NF"]
-
-        self.data = pd.concat(
-            [fer2013, fer_plus[all_cols]],
-            axis=1,
-        )
+        self.data = pd.read_csv(filename)
         self.data = self.data[self.data["Usage"] == usage]
-
-        for c in all_cols:
+        for c in CLASS_LABELS:
             self.data[c] = pd.to_numeric(self.data[c], errors="coerce")
-        self.data[all_cols] = self.data[all_cols].fillna(0)
+        self.data[CLASS_LABELS] = self.data[CLASS_LABELS].fillna(0)
 
-        denom = self.data[self.emotion_cols].sum(axis=1).replace(0, np.nan)
-        self.data[self.emotion_cols] = (
-            self.data[self.emotion_cols]
+        denom = self.data[CLASS_LABELS].sum(axis=1).replace(0, np.nan)
+        self.data[CLASS_LABELS] = (
+            self.data[CLASS_LABELS]
             .div(denom, axis=0)
             .fillna(0.0)
             .astype(np.float32)
         )
+        self.data['pixels'] = self.data['pixels'].apply(self._parse_pixels)
         self.transform = transform
+
+    @staticmethod
+    def _parse_pixels(pixels_str):
+        pixels = np.array(pixels_str.split(), dtype=np.uint8)
+        return pixels.reshape(48, 48)
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
-        pixels = np.array(row["pixels"].split(), dtype=np.uint8).reshape(48, 48, 1)
-        image = Image.fromarray(pixels.squeeze(), mode="L")
-        emotion_dist = torch.from_numpy(row[self.emotion_cols].to_numpy(np.float32))
+        image = Image.fromarray(row['pixels'], mode="L")
+        emotion_dist = torch.from_numpy(row[CLASS_LABELS].to_numpy(np.float32))
         if self.transform:
             image = self.transform(image)
         return image, emotion_dist
