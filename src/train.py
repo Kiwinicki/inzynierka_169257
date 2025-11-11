@@ -1,19 +1,47 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import trackio as wandb
+import trackio
 from .models import PlainCNN, ResNet
 from .data_loaders import get_data_loaders
 from pathlib import Path
+from src.dataset import CLASS_LABELS
+import argparse
 
+ARCHITECTURES = {"plain": PlainCNN, "resnet": ResNet}
+
+
+parser = argparse.ArgumentParser("Training")
+parser.add_argument("num_epochs", type=int, default=1)
+parser.add_argument("batch_size", type=int, default=64)
+parser.add_argument("lr", type=float, default=1e-3)
+parser.add_argument("base_ch", type=int, default=32)
+parser.add_argument(
+    "arch", type=str, choices=ARCHITECTURES.keys(), default=ARCHITECTURES["plain"]
+)
+args = parser.parse_args()
+
+model_cls = ARCHITECTURES[args.arch]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = PlainCNN(base_ch=32, n_classes=9).to(device)
-EPOCHS = 1
-train_loader, val_loader, _ = get_data_loaders(batch_size=64)
+model = model_cls(base_ch=args.base_ch, n_classes=len(CLASS_LABELS)).to(device)
+train_loader, val_loader, _ = get_data_loaders(batch_size=args.bs)
 criterion = nn.KLDivLoss(reduction="batchmean")
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-for epoch in range(EPOCHS):
+
+trackio.init(
+    project="emotion-recognition",
+    name=f"{args.arch}-{args.base_ch}ch-{args.lr}-{args.batch_size}bs",
+    config={
+        "num_epochs": args.num_epochs,
+        "batch_size": args.batch_size,
+        "lr": args.lr,
+        "base_ch": args.base_ch,
+        "arch": args.arch,
+    },
+)
+
+for epoch in range(args.epochs):
     model.train()
     for i, (images, labels) in enumerate(train_loader):
         images, labels = images.to(device), labels.to(device)
@@ -24,6 +52,7 @@ for epoch in range(EPOCHS):
         optimizer.step()
         if i % 100 == 0:
             print("loss:", loss.item())
+            trackio.log({"train_loss": loss.item()})
 
     # Validation
     model.eval()
@@ -46,9 +75,11 @@ for epoch in range(EPOCHS):
     print("Validation acc:", val_acc)
     val_loss /= len(val_loader)
     print("Validation loss:", val_loss)
+    trackio.log({"val_acc": val_acc, "val_loss": val_loss})
 
 
 Path("./checkpoints/").mkdir(exist_ok=True)
 torch.save(
-    model.state_dict(), f"./checkpoints/{model.__class__.__name__}-{EPOCHS}ep.ckpt"
+    model.state_dict(), f"./checkpoints/{model.__class__.__name__}-{args.epochs}ep.ckpt"
 )
+trackio.finish()
