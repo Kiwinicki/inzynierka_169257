@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
-import trackio
 from .models import PlainCNN, ResNet
 from .data_loaders import get_data_loaders
 from pathlib import Path
 from src.dataset import CLASS_LABELS
 import argparse
 import math
+from torch.utils.tensorboard import SummaryWriter
 
 
 ARCHITECTURES = {"plain": PlainCNN, "resnet": ResNet}
@@ -25,35 +25,30 @@ class Trainer:
         )
         self.criterion = nn.KLDivLoss(reduction="batchmean")
         self.opt = torch.optim.Adam(self.model.parameters(), lr=args.lr)
+
         self.best_loss = math.inf
         self.num_bad = 0
-
-        trackio.init(
-            project="emotion-recognition",
-            name=f"{args.arch}-{args.base_ch}ch-{args.lr}lr-{args.batch_size}bs",
-            config={
-                "num_epochs": args.num_epochs,
-                "batch_size": args.batch_size,
-                "lr": args.lr,
-                "base_ch": args.base_ch,
-                "arch": args.arch,
-            },
-        )
+        self.global_step = 0
+        self.run_name = f"{args.arch}-{args.base_ch}ch-{args.lr:.2e}lr"
+        self.writer = SummaryWriter(Path("runs") / self.run_name)
 
     def train_epoch(self):
         self.model.train()
-        for i, (images, labels) in enumerate(self.train_loader):
+        for images, labels in self.train_loader:
             images, labels = images.to(self.device), labels.to(self.device)
             self.opt.zero_grad()
             outputs = self.model(images)
             loss = self.criterion(torch.log_softmax(outputs, dim=1), labels)
             loss.backward()
             self.opt.step()
-            if i % 100 == 0:
-                print("loss:", loss.item())
-                trackio.log({"train_loss": loss.item()})
 
-    def valid_epoch(self):
+            self.global_step += 1
+            if self.global_step % 100 == 0:
+                self.writer.add_scalar("train/loss", loss.item(), self.global_step)
+
+        self.writer.flush()
+
+    def valid_epoch(self, curr_ep):
         self.model.eval()
         valid_loss = 0.0
         correct = 0
@@ -71,13 +66,16 @@ class Trainer:
                 correct += (predicted == true_labels).sum().item()
 
         valid_acc = 100 * correct / total
-        print("Validation acc:", valid_acc)
         valid_loss /= len(self.valid_loader)
-        print("Validation loss:", valid_loss)
-        trackio.log({"valid_acc": valid_acc, "valid_loss": valid_loss})
+
+        print(f"Valid epoch {curr_ep} acc: {valid_acc:.2f}, loss: {valid_loss:.3f}")
+
+        self.writer.add_scalar("valid/acc", valid_acc, self.global_step)
+        self.writer.add_scalar("valid/loss", valid_loss, self.global_step)
+        self.writer.flush()
         return valid_loss
 
-    def stop_early(self, valid_loss):
+    def stop_early(self, valid_loss, curr_ep):
         if self.best_loss == math.inf:
             self.best_loss = valid_loss
             return False
@@ -89,23 +87,36 @@ class Trainer:
             self.num_bad += 1
             return False
         else:
-            print("Validation loss isn't improving, stopping early")
+            print(f"Validation loss isn't improving, stopping early at {curr_ep} epoch")
             return True
 
     def train(self):
         curr_ep = 0
+        valid_loss = math.inf
         while curr_ep < self.args.num_epochs:
             self.train_epoch()
-            valid_loss = self.valid_epoch()
-            if self.stop_early(valid_loss):
+            valid_loss = self.valid_epoch(curr_ep)
+            if self.stop_early(valid_loss, curr_ep):
                 break
             curr_ep += 1
 
-        trackio.finish()
+        self.writer.add_hparams(
+            {
+                "num_epochs": curr_ep,
+                "batch_size": self.args.batch_size,
+                "lr": self.args.lr,
+                "base_ch": self.args.base_ch,
+                "arch": self.args.arch,
+            },
+            {"final/valid_loss": valid_loss},
+            run_name="final",
+        )
+        self.writer.flush()
+        self.writer.close()
+
         Path("./checkpoints/").mkdir(exist_ok=True)
         torch.save(
-            self.model.state_dict(),
-            f"./checkpoints/{self.args.arch}-{curr_ep}ep.ckpt",
+            self.model.state_dict(), f"./checkpoints/{self.args.arch}-{curr_ep}ep.ckpt"
         )
 
 

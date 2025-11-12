@@ -19,8 +19,10 @@ zachowań konsumenckich.
 1. Clone the repo
 2. Install dependencies: `pip install .`
 3. Download datasets: Run `python src/download_data.py`
-4. Train models: Run `python -m src.train`
-5. Launch app: `gradio app.py`
+4. Run dataset cleaning: Run `python src/clean_data.py`
+5. Train models: Run `python -m src.train`
+6. Show training logs: Run `tensorboard --logdir runs/`
+7. Launch app: `gradio app.py`
 
 ## Project Structure
 - `data/`: Datasets
