@@ -8,7 +8,6 @@ import torch.nn as nn
 from PIL import Image
 
 
-
 class BaseCNN(nn.Module):
     """
     Base class for CNN models (Plain CNN, ResNet, ResNeXt, ConvNeXt, ...).
