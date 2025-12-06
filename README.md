@@ -19,9 +19,10 @@ zachowań konsumenckich.
 1. Clone the repo
 2. Install dependencies: `pip install .`
 3. Download datasets: Run `python src/download_data.py`
-4. Clean dataset: Run `python src/clean_data.py`
+4. Run dataset cleaning: Run `python src/clean_data.py`
 5. Train models: Run `python -m src.train`
-6. Launch app: `gradio app.py`
+6. Show training logs: Run `tensorboard --logdir runs/`
+7. Launch app: `gradio app.py`
 
 ## Project Structure
 - `data/`: Datasets
@@ -31,10 +32,10 @@ zachowań konsumenckich.
 ## TODO
 
 [x] Implement plain CNN and base training loop (baseline)
-[ ] Data cleaning
+[x] Exploratory Data Analysis & Data cleaning
 [x] GFLOPs and memory consumption estimation code of each model (training and inference)
-[ ] Data augmentation
-[ ] Logging with trackio
+[-] Data augmentation
+[x] Logging with tensorboard
 [ ] Evaluate models on test set, compute confusion matrices, precision/recall/F1
 [ ] Model comparison: accuracy, training/inference speed, memory efficiency
 [-] Gradio demo app with image upload and prediction

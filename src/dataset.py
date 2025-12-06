@@ -15,7 +15,7 @@ CLASS_LABELS = [
     "disgust",
     "fear",
     "contempt",
-    "unknown"
+    "unknown",
 ]
 
 
@@ -34,12 +34,9 @@ class FERDataset(Dataset):
 
         denom = self.data[CLASS_LABELS].sum(axis=1).replace(0, np.nan)
         self.data[CLASS_LABELS] = (
-            self.data[CLASS_LABELS]
-            .div(denom, axis=0)
-            .fillna(0.0)
-            .astype(np.float32)
+            self.data[CLASS_LABELS].div(denom, axis=0).fillna(0.0).astype(np.float32)
         )
-        self.data['pixels'] = self.data['pixels'].apply(self._parse_pixels)
+        self.data["pixels"] = self.data["pixels"].apply(self._parse_pixels)
         self.transform = transform
 
     @staticmethod
@@ -52,7 +49,7 @@ class FERDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
-        image = Image.fromarray(row['pixels'], mode="L")
+        image = Image.fromarray(row["pixels"], mode="L")
         emotion_dist = torch.from_numpy(row[CLASS_LABELS].to_numpy(np.float32))
         if self.transform:
             image = self.transform(image)

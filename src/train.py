@@ -1,54 +1,32 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import trackio as wandb
-from .models import PlainCNN, ResNet
-from .data_loaders import get_data_loaders
+import argparse
+from src.models import ARCHITECTURES
+from src.trainer import Trainer
+from src.hooks import EarlyStoppingHook, CheckpointHook, LoggerHook
 from pathlib import Path
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = PlainCNN(base_ch=32, n_classes=9).to(device)
-EPOCHS = 1
-train_loader, val_loader, _ = get_data_loaders(batch_size=64)
-criterion = nn.KLDivLoss(reduction="batchmean")
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-for epoch in range(EPOCHS):
-    model.train()
-    for i, (images, labels) in enumerate(train_loader):
-        images, labels = images.to(device), labels.to(device)
-        optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(torch.log_softmax(outputs, dim=1), labels)
-        loss.backward()
-        optimizer.step()
-        if i % 100 == 0:
-            print("loss:", loss.item())
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Training")
+    parser.add_argument("--num_epochs", type=int, default=1)
+    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--base_ch", type=int, default=32)
+    parser.add_argument(
+        "--arch", type=str, choices=ARCHITECTURES.keys(), default="plain"
+    )
+    args = parser.parse_args()
 
-    # Validation
-    model.eval()
-    val_loss = 0.0
-    correct = 0
-    total = 0
+    run_name = f"{args.arch}-{args.base_ch}ch-{args.lr:.2e}lr"
 
-    with torch.no_grad():
-        for images, labels in val_loader:
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            loss = criterion(torch.log_softmax(outputs, dim=1), labels)
-            val_loss += loss.item()
-            _, predicted = torch.max(outputs.data, 1)
-            true_labels = torch.argmax(labels, dim=1)
-            total += labels.size(0)
-            correct += (predicted == true_labels).sum().item()
+    # Initialize hooks
+    logger_hook = LoggerHook(Path("runs") / run_name)
+    early_stopping_hook = EarlyStoppingHook(patience=5)
+    checkpoint_hook = CheckpointHook(save_dir="./checkpoints")
+    hooks = [logger_hook, early_stopping_hook, checkpoint_hook]
 
-    val_acc = 100 * correct / total
-    print("Validation acc:", val_acc)
-    val_loss /= len(val_loader)
-    print("Validation loss:", val_loss)
+    trainer = Trainer(args, hooks=hooks)
 
-
-Path("./checkpoints/").mkdir(exist_ok=True)
-torch.save(
-    model.state_dict(), f"./checkpoints/{model.__class__.__name__}-{EPOCHS}ep.ckpt"
-)
+    try:
+        trainer.train()
+    finally:
+        logger_hook.close()
