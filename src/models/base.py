@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from PIL import Image
-import torchprofile
+
 
 
 class BaseCNN(nn.Module):

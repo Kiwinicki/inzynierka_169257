@@ -108,6 +108,20 @@ class LoggerHook(Hook):
         self.writer.add_scalar("valid/loss", state.valid_loss, state.global_step)
         self.writer.flush()
 
+    def on_train_end(self, trainer, state):
+        self.writer.add_hparams(
+            {
+                "num_epochs": state.epoch,
+                "batch_size": trainer.args.batch_size,
+                "lr": trainer.args.lr,
+                "base_ch": trainer.args.base_ch,
+                "arch": trainer.args.arch,
+            },
+            {"final/valid_loss": state.valid_loss, "final/valid_acc": state.valid_acc},
+            run_name="final",
+        )
+        self.writer.flush()
+
     def _log_weights(self, model, step):
         for name, param in model.named_parameters():
             if "weight" in name:

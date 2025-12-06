@@ -35,7 +35,7 @@ zachowań konsumenckich.
 [x] Exploratory Data Analysis & Data cleaning
 [x] GFLOPs and memory consumption estimation code of each model (training and inference)
 [-] Data augmentation
-[-] Logging with tensorboard
+[x] Logging with tensorboard
 [ ] Evaluate models on test set, compute confusion matrices, precision/recall/F1
 [ ] Model comparison: accuracy, training/inference speed, memory efficiency
 [-] Gradio demo app with image upload and prediction
