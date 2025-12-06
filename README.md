@@ -32,10 +32,10 @@ zachowań konsumenckich.
 ## TODO
 
 [x] Implement plain CNN and base training loop (baseline)
-[x] Exploratory Data Analisis & Data cleaning
+[x] Exploratory Data Analysis & Data cleaning
 [x] GFLOPs and memory consumption estimation code of each model (training and inference)
-[ ] Data augmentation
-[-] Logging with trackio
+[-] Data augmentation
+[-] Logging with tensorboard
 [ ] Evaluate models on test set, compute confusion matrices, precision/recall/F1
 [ ] Model comparison: accuracy, training/inference speed, memory efficiency
 [-] Gradio demo app with image upload and prediction

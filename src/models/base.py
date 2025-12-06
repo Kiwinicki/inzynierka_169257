@@ -49,43 +49,33 @@ class BaseCNN(nn.Module):
         bytes_size = sum(p.numel() * 4 for p in self.parameters() if p.requires_grad)
         return bytes_size
 
-    def macs(
-        self,
-        x: Optional[torch.Tensor] = None,
-        mode: Literal["inference", "training"] = "inference",
-    ) -> Optional[float]:
-        """
-        Estimate MACs (Multiply-ACcumulate) using torchprofile. 1 MAC = 2 FLOPs
-        """
-        if x is None:
-            x = torch.randn(1, self.in_channels, *self.input_size)
+    def flops(self):
+        from torch.utils.flop_counter import FlopCounterMode
 
-        macs = torchprofile.profile_macs(self.forward, x)
-        return macs
+        device = next(self.parameters()).device
+        with FlopCounterMode() as counter:
+            with torch.no_grad():
+                x = torch.randn(1, self.in_channels, *self.input_size, device=device)
+                self(x)
+        return counter.get_total_flops()
 
-    def activation_memory_bytes(self, x: torch.Tensor, mode: str = "inference") -> int:
-        device = (
-            x.device
-            if x.is_cuda
-            else (
-                torch.device("cuda")
-                if torch.cuda.is_available()
-                else torch.device("cpu")
-            )
-        )
-        self = self.to(device)
-        x = x.to(device)
+    def activation_memory_bytes(self, is_training: bool = False) -> int:
+        orig_training = self.training
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if device.type == "cuda":
+            self = self.to(device)
+            x = torch.randn(1, self.in_channels, *self.input_size, device=device)
+            self.train(is_training)
             torch.cuda.synchronize(device)
             torch.cuda.reset_peak_memory_stats(device)
-        with torch.no_grad() if mode == "inference" else torch.enable_grad():
-            out = self(x)
-            if mode == "training" and out.requires_grad:
+            with torch.no_grad() if not is_training else torch.enable_grad():
+                out = self(x)
+            if is_training and out.requires_grad:
                 (out.sum()).backward()
-        if device.type == "cuda":
             peak = torch.cuda.max_memory_allocated(device)
             param_bytes = sum(p.numel() * p.element_size() for p in self.parameters())
             buffer_bytes = sum(b.numel() * b.element_size() for b in self.buffers())
+            self.train(orig_training)
             return max(0, peak - (param_bytes + buffer_bytes))
         return 0
 
