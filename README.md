@@ -41,7 +41,7 @@ zachowań konsumenckich.
 
 [x] Logging with tensorboard
 
-[ ] Evaluate models on test set, compute confusion matrices, precision/recall/F1
+[-] Evaluate models on test set, compute confusion matrices, precision/recall/F1
 
 [ ] Model comparison: accuracy, training/inference speed, memory efficiency
 
@@ -52,3 +52,5 @@ zachowań konsumenckich.
 [ ] Final conclusions: best model, best compute/acc model etc. (how each trick contributed to final results)
 
 [ ] Other stuff: plot overfitting point of each model (in epochs), **justify each decision**, check other optimizers (SGD, Adam, AdamW), early stopping?, lr search, lr scheduler
+
+[ ] Idea: finetune model on highest quality data? (high agreement between annotators) 
