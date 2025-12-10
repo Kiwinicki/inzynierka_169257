@@ -19,7 +19,6 @@ if __name__ == "__main__":
 
     run_name = f"{args.arch}-{args.base_ch}ch-{args.lr:.2e}lr-{datetime.now().strftime('%y%m%d-%H:%M')}"
 
-    # Initialize hooks
     logger_hook = LoggerHook(Path("runs") / run_name)
     early_stopping_hook = EarlyStoppingHook(patience=5)
     checkpoint_hook = CheckpointHook(save_dir="./checkpoints")
@@ -29,7 +28,5 @@ if __name__ == "__main__":
 
     try:
         trainer.train()
-        results = trainer.test()
-        print(results)
     finally:
         logger_hook.close()

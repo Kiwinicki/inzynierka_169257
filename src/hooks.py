@@ -67,19 +67,19 @@ class CheckpointHook(Hook):
                 / f"{trainer.args.arch}-ep{state.epoch}-loss{state.valid_loss:.3f}.ckpt"
             )
             
+            checkpoint = {
+                "state_dict": trainer.model.state_dict(),
+                "arch": trainer.args.arch,
+                "base_ch": trainer.args.base_ch,
+                "epoch": state.epoch,
+                "loss": state.valid_loss,
+            }
+            
             if self.save_best_only and self.best_path is not None and self.best_path.exists():
                 self.best_path.unlink()
                 
-            torch.save(trainer.model.state_dict(), path)
+            torch.save(checkpoint, path)
             self.best_path = path
-
-    def on_train_end(self, trainer, state):
-        if self.save_best_only and self.best_path is not None and self.best_path.exists():
-            final_path = self.best_path.with_name(
-                f"{self.best_path.stem}-final{self.best_path.suffix}"
-            )
-            self.best_path.rename(final_path)
-            print(f"Saved final checkpoint to {final_path}")
 
 
 class LoggerHook(Hook):

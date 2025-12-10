@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from PIL import Image
+from src.dataset import CLASS_LABELS
 
 
 class BaseCNN(nn.Module):
@@ -120,3 +121,20 @@ class BaseCNN(nn.Module):
             logits = self.forward(x)
             probs = torch.softmax(logits, dim=-1).squeeze(0)  # (C,)
             return probs
+
+    @classmethod
+    def from_checkpoint(cls, checkpoint_path: str, **kwargs):
+        from src.models import ARCHITECTURES
+
+        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        
+        state_dict = checkpoint["state_dict"]
+        arch = checkpoint.get("arch", kwargs.get("arch", "plain"))
+        base_ch = checkpoint.get("base_ch", kwargs.get("base_ch", 32))
+        num_classes = kwargs.get("num_classes", len(CLASS_LABELS))
+
+        model_cls = ARCHITECTURES[arch]
+        model = model_cls(base_ch=base_ch, num_classes=num_classes)
+        model.load_state_dict(state_dict)
+
+        return model, {"arch": arch, "base_ch": base_ch}

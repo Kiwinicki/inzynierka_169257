@@ -31,7 +31,7 @@ class ResNetBlock(nn.Module):
 
 
 class ResNet(BaseCNN):
-    def __init__(self, base_ch, n_classes):
+    def __init__(self, base_ch, num_classes):
         super().__init__()
         self.layers = nn.Sequential(
             nn.Conv2d(1, base_ch, kernel_size=3, stride=1, padding=1),
@@ -43,7 +43,7 @@ class ResNet(BaseCNN):
             ResNetBlock(base_ch * 8, base_ch * 8, s=2),
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
-            nn.Linear(base_ch * 8, n_classes),
+            nn.Linear(base_ch * 8, num_classes),
         )
 
     def forward(self, x):

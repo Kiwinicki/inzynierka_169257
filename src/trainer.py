@@ -8,16 +8,19 @@ from src.metrics import Metrics
 
 
 class Trainer:
-    def __init__(self, args, hooks=None):
+    def __init__(self, args, hooks=None, model=None):
         self.args = args
         self.hooks = hooks or []
         self.state = TrainerState()
-
-        model_cls = ARCHITECTURES[args.arch]
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = model_cls(base_ch=args.base_ch, n_classes=len(CLASS_LABELS)).to(
-            self.device
-        )
+
+        if model is not None:
+            self.model = model.to(self.device)
+        else:
+            model_cls = ARCHITECTURES[args.arch]
+            self.model = model_cls(base_ch=args.base_ch, num_classes=len(CLASS_LABELS)).to(
+                self.device
+            )
         self.train_loader, self.valid_loader, self.test_loader = get_data_loaders(
             batch_size=args.batch_size
         )
