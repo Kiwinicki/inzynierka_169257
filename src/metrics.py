@@ -25,8 +25,12 @@ class PairwiseAccuracy(Metric):
         target: (B, Num_Classes) - Votes or Distribution
         """
         # Compare each with each other
-        pred_diff = preds.unsqueeze(2) - preds.unsqueeze(1) # [B, C, 1] - [B, 1, C] -> [B, C, C]
-        target_diff = target.unsqueeze(2) - target.unsqueeze(1) # [B, C, 1] - [B, 1, C] -> [B, C, C]
+        pred_diff = preds.unsqueeze(2) - preds.unsqueeze(
+            1
+        )  # [B, C, 1] - [B, 1, C] -> [B, C, C]
+        target_diff = target.unsqueeze(2) - target.unsqueeze(
+            1
+        )  # [B, C, 1] - [B, 1, C] -> [B, C, C]
 
         # Don't count with ties in target
         valid_mask = target_diff > 0

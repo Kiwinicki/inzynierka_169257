@@ -18,9 +18,9 @@ class Trainer:
             self.model = model.to(self.device)
         else:
             model_cls = ARCHITECTURES[args.arch]
-            self.model = model_cls(base_ch=args.base_ch, num_classes=len(CLASS_LABELS)).to(
-                self.device
-            )
+            self.model = model_cls(
+                base_ch=args.base_ch, num_classes=len(CLASS_LABELS)
+            ).to(self.device)
         self.train_loader, self.valid_loader, self.test_loader = get_data_loaders(
             batch_size=args.batch_size
         )

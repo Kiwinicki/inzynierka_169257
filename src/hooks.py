@@ -66,7 +66,7 @@ class CheckpointHook(Hook):
                 self.save_dir
                 / f"{trainer.args.arch}-ep{state.epoch}-loss{state.valid_loss:.3f}.ckpt"
             )
-            
+
             checkpoint = {
                 "state_dict": trainer.model.state_dict(),
                 "arch": trainer.args.arch,
@@ -74,10 +74,14 @@ class CheckpointHook(Hook):
                 "epoch": state.epoch,
                 "loss": state.valid_loss,
             }
-            
-            if self.save_best_only and self.best_path is not None and self.best_path.exists():
+
+            if (
+                self.save_best_only
+                and self.best_path is not None
+                and self.best_path.exists()
+            ):
                 self.best_path.unlink()
-                
+
             torch.save(checkpoint, path)
             self.best_path = path
 

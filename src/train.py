@@ -3,7 +3,7 @@ from src.models import ARCHITECTURES
 from src.trainer import Trainer
 from src.hooks import EarlyStoppingHook, CheckpointHook, LoggerHook
 from pathlib import Path
-from datetime import datetime    
+from datetime import datetime
 
 
 if __name__ == "__main__":

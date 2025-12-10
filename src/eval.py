@@ -9,17 +9,16 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint", type=str, required=True)
     parser.add_argument("--batch_size", type=int, default=64)
     args = parser.parse_args()
-    
+
     model, loaded_args = BaseCNN.from_checkpoint(
-        args.checkpoint,
-        num_classes=len(CLASS_LABELS)
+        args.checkpoint, num_classes=len(CLASS_LABELS)
     )
-    
+
     args.arch = loaded_args["arch"]
     args.base_ch = loaded_args["base_ch"]
-    args.lr = 0.0 
+    args.lr = 0.0
     args.num_epochs = 0
-    
+
     trainer = Trainer(args, model=model)
     results = trainer.test()
     for metric_name, value in results.items():
