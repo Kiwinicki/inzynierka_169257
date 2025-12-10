@@ -6,8 +6,8 @@ import numpy as np
 from src.models import PlainCNN, ResNet
 from src.dataset import CLASS_LABELS
 
-model = PlainCNN(base_ch=32, n_classes=len(CLASS_LABELS))
-model.load_state_dict(torch.load("./checkpoints/PlainCNN-30ep.ckpt"))
+model = ResNet(base_ch=32, n_classes=len(CLASS_LABELS))
+model.load_state_dict(torch.load("checkpoints/resnet-ep17-loss0.388-final.ckpt"))
 model.eval()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -51,7 +51,6 @@ iface = gr.Interface(
     ],
     title="Emotion Recognition",
     description="Upload an image to detect the emotion.",
-    allow_flagging="never",
 )
 
 if __name__ == "__main__":
