@@ -4,7 +4,7 @@ from .base import BaseCNN
 
 
 class PlainCNN(BaseCNN):
-    def __init__(self, base_ch, n_classes):
+    def __init__(self, base_ch, num_classes):
         super().__init__()
         self.layers = nn.Sequential(
             nn.Conv2d(1, base_ch, kernel_size=4, stride=2, padding=1),  # 48->24
@@ -17,7 +17,7 @@ class PlainCNN(BaseCNN):
             nn.ReLU(),
             nn.Conv2d(base_ch * 8, base_ch * 8, 3, 1, 0),  # 3->1
         )
-        self.head = nn.Linear(base_ch * 8, n_classes)
+        self.head = nn.Linear(base_ch * 8, num_classes)
 
     def forward(self, x):
         x = self.layers(x)

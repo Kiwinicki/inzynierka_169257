@@ -41,14 +41,12 @@ zachowań konsumenckich.
 
 [x] Logging with tensorboard
 
-[ ] Evaluate models on test set, compute confusion matrices, precision/recall/F1
+[x] Evaluate models on test set, compute confusion matrices, precision/recall/F1
 
 [ ] Model comparison: accuracy, training/inference speed, memory efficiency
 
-[-] Gradio demo app with image upload and prediction
+[-] Gradio demo app with image upload and prediction (check camera support)
 
 [ ] Deploy the app on Hugging Face Spaces with requirements and model files
 
 [ ] Final conclusions: best model, best compute/acc model etc. (how each trick contributed to final results)
-
-[ ] Other stuff: plot overfitting point of each model (in epochs), **justify each decision**, check other optimizers (SGD, Adam, AdamW), early stopping?, lr search, lr scheduler

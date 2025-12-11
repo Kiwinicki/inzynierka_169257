@@ -57,6 +57,7 @@ class CheckpointHook(Hook):
         self.save_dir.mkdir(exist_ok=True)
         self.save_best_only = save_best_only
         self.best_loss = math.inf
+        self.best_path = None
 
     def on_valid_epoch_end(self, trainer, state):
         if not self.save_best_only or state.valid_loss < self.best_loss:
@@ -65,8 +66,24 @@ class CheckpointHook(Hook):
                 self.save_dir
                 / f"{trainer.args.arch}-ep{state.epoch}-loss{state.valid_loss:.3f}.ckpt"
             )
-            torch.save(trainer.model.state_dict(), path)
-            print(f"Saved checkpoint to {path}")
+
+            checkpoint = {
+                "state_dict": trainer.model.state_dict(),
+                "arch": trainer.args.arch,
+                "base_ch": trainer.args.base_ch,
+                "epoch": state.epoch,
+                "loss": state.valid_loss,
+            }
+
+            if (
+                self.save_best_only
+                and self.best_path is not None
+                and self.best_path.exists()
+            ):
+                self.best_path.unlink()
+
+            torch.save(checkpoint, path)
+            self.best_path = path
 
 
 class LoggerHook(Hook):

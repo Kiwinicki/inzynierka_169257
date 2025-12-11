@@ -3,6 +3,7 @@ from src.models import ARCHITECTURES
 from src.trainer import Trainer
 from src.hooks import EarlyStoppingHook, CheckpointHook, LoggerHook
 from pathlib import Path
+from datetime import datetime
 
 
 if __name__ == "__main__":
@@ -16,9 +17,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    run_name = f"{args.arch}-{args.base_ch}ch-{args.lr:.2e}lr"
+    run_name = f"{args.arch}-{args.base_ch}ch-{args.lr:.2e}lr-{datetime.now().strftime('%y%m%d-%H:%M')}"
 
-    # Initialize hooks
     logger_hook = LoggerHook(Path("runs") / run_name)
     early_stopping_hook = EarlyStoppingHook(patience=5)
     checkpoint_hook = CheckpointHook(save_dir="./checkpoints")
