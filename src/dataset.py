@@ -42,6 +42,7 @@ class FERDataset(Dataset):
     def get_class_weights(self, beta=0.999):
         vote_sums = self.data[CLASS_LABELS].sum(axis=0)
         weights = (1 - beta) / (1 - beta**vote_sums)  # "Effective Number of Samples"
+        weights = weights / weights.sum() * len(weights)
         return torch.tensor(weights.values, dtype=torch.float32)
 
     def get_sample_weights(self):
