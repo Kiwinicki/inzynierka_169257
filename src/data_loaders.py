@@ -4,9 +4,9 @@ from torchvision import transforms
 from .dataset import FERDataset
 
 
-def get_data_loaders(data_dir="./data/fer2013_clean.csv", batch_size=32, num_workers=4):
-    """Create data loaders with augmentations"""
-
+def get_data_loaders(
+    data_dir="./data/fer2013_clean.csv", batch_size=32, num_workers=4, oversample=False
+):
     train_transform = transforms.Compose(
         [
             transforms.RandomHorizontalFlip(),
@@ -31,8 +31,22 @@ def get_data_loaders(data_dir="./data/fer2013_clean.csv", batch_size=32, num_wor
         filename=data_dir, transform=val_transform, usage="PrivateTest"
     )
 
+    if oversample:
+        sample_weights = train_dataset.get_sample_weights()
+        sampler = torch.utils.data.WeightedRandomSampler(
+            weights=sample_weights, num_samples=len(sample_weights), replacement=True
+        )
+        shuffle = False
+    else:
+        sampler = None
+        shuffle = True
+
     train_loader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        sampler=sampler,
+        num_workers=num_workers,
     )
     val_loader = DataLoader(
         val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers

@@ -21,17 +21,33 @@ class Trainer:
             self.model = model_cls(
                 base_ch=args.base_ch, num_classes=len(CLASS_LABELS)
             ).to(self.device)
+
         self.train_loader, self.valid_loader, self.test_loader = get_data_loaders(
-            batch_size=args.batch_size
+            batch_size=args.batch_size, oversample=getattr(args, "oversample", False)
         )
-        self.criterion = nn.KLDivLoss(reduction="batchmean")
+
+        if getattr(args, "class_weighting", False):
+            self.criterion = self._weighted_kl_div
+        else:
+            self.criterion = nn.KLDivLoss(reduction="batchmean")
+
         self.opt = torch.optim.Adam(self.model.parameters(), lr=args.lr)
         self.metrics = Metrics(num_classes=len(CLASS_LABELS), device=self.device)
-        self.class_weights = self.train_loader.dataset.get_class_weights().to(self.device)
+        self.class_weights = self.train_loader.dataset.get_class_weights().to(
+            self.device
+        )
 
     def _call_hook(self, event, **kwargs):
         for hook in self.hooks:
             getattr(hook, event)(self, self.state, **kwargs)
+
+    def _weighted_kl_div(self, log_q, labels):
+        argmax_class = torch.argmax(labels, dim=1)
+        sample_w = self.class_weights[argmax_class]
+        kl_per_sample = torch.nn.functional.kl_div(log_q, labels, reduction="none").sum(
+            dim=1
+        )
+        return (sample_w * kl_per_sample).mean()
 
     def train_epoch(self):
         self.model.train()
@@ -40,16 +56,9 @@ class Trainer:
             self.opt.zero_grad()
             outputs = self.model(images)
 
-            # loss = self.criterion(torch.log_softmax(outputs, dim=1), labels)
-
             log_q = torch.log_softmax(outputs, dim=1)
-            kl_per_sample = torch.nn.functional.kl_div(log_q, labels, reduction="none").sum(dim=1)
-            
-            argmax_class = torch.argmax(labels, dim=1)
-            sample_w = self.class_weights[argmax_class]
-            
-            loss = (sample_w * kl_per_sample).mean()
-            
+            loss = self.criterion(log_q, labels)
+
             loss.backward()
             self.opt.step()
 

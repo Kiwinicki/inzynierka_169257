@@ -15,6 +15,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--arch", type=str, choices=ARCHITECTURES.keys(), default="plain"
     )
+    parser.add_argument("--oversample", action="store_true")
+    parser.add_argument("--class_weighting", action="store_true")
+    parser.add_argument("--run_name", type=str)
     args = parser.parse_args()
 
     run_name = f"{args.arch}-{args.base_ch}ch-{args.lr:.2e}lr-{datetime.now().strftime('%y%m%d-%H:%M')}"

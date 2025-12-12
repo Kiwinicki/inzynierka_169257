@@ -41,8 +41,18 @@ class FERDataset(Dataset):
 
     def get_class_weights(self, beta=0.999):
         vote_sums = self.data[CLASS_LABELS].sum(axis=0)
-        weights = (1 - beta) / (1 - beta ** vote_sums) # "Effective Number of Samples"
+        weights = (1 - beta) / (1 - beta**vote_sums)  # "Effective Number of Samples"
         return torch.tensor(weights.values, dtype=torch.float32)
+
+    def get_sample_weights(self):
+        class_weights = self.get_class_weights()
+        dominant_classes = self.data[CLASS_LABELS].idxmax(axis=1)
+
+        label_to_idx = {label: idx for idx, label in enumerate(CLASS_LABELS)}
+        dominant_indices = dominant_classes.map(label_to_idx)
+
+        sample_weights = [class_weights[idx] for idx in dominant_indices]
+        return torch.tensor(sample_weights, dtype=torch.float32)
 
     @staticmethod
     def _parse_pixels(pixels_str):
