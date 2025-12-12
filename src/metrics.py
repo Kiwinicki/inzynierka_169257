@@ -24,18 +24,14 @@ class PairwiseAccuracy(Metric):
         preds: (B, Num_Classes) - Probabilities or Logits
         target: (B, Num_Classes) - Votes or Distribution
         """
-        # Compare each with each other
-        pred_diff = preds.unsqueeze(2) - preds.unsqueeze(
-            1
-        )  # [B, C, 1] - [B, 1, C] -> [B, C, C]
-        target_diff = target.unsqueeze(2) - target.unsqueeze(
-            1
-        )  # [B, C, 1] - [B, 1, C] -> [B, C, C]
+        # compare each with each other [B, C, C]
+        pred_diff = preds.unsqueeze(2) - preds.unsqueeze(1)
+        target_diff = target.unsqueeze(2) - target.unsqueeze(1)
 
-        # Don't count with ties in target
+        # don't count with ties in target
         valid_mask = target_diff > 0
 
-        # Check if model also predicted i > j
+        # check if model also predicted i > j
         correct_predictions = (pred_diff > 0) & valid_mask
 
         self.correct_pairs += correct_predictions.sum()
@@ -47,12 +43,41 @@ class PairwiseAccuracy(Metric):
         return self.correct_pairs / self.total_valid_pairs
 
 
+class TieAwareAccuracy(Metric):
+    full_state_update = False
+
+    def __init__(self):
+        super().__init__()
+        self.add_state("correct", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0.0), dist_reduce_fx="sum")
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        """
+        preds: (B, Num_Classes) - Probabilities or Logits
+        target: (B, Num_Classes) - Votes or Distribution
+        """
+        target_max = target.max(dim=1, keepdim=True).values
+        is_max_mask = target == target_max
+        pred_cls = preds.argmax(dim=1)
+
+        # check if the predicted class is one of the max classes
+        is_correct = is_max_mask.gather(1, pred_cls.unsqueeze(1)).squeeze(1)
+
+        self.correct += is_correct.sum()
+        self.total += target.size(0)
+
+    def compute(self):
+        if self.total == 0:
+            return torch.tensor(0.0)
+        return self.correct / self.total
+
+
 class Metrics:
     def __init__(self, num_classes, device):
         self.pairwise_acc = PairwiseAccuracy().to(device)
+        self.tie_aware_acc = TieAwareAccuracy().to(device)
         self.collection = MetricCollection(
             {
-                "acc": MulticlassAccuracy(num_classes=num_classes),
                 "precision": MulticlassPrecision(
                     num_classes=num_classes, average="macro"
                 ),
@@ -64,6 +89,7 @@ class Metrics:
 
     def update(self, preds, target):
         self.pairwise_acc.update(preds, target)
+        self.tie_aware_acc.update(preds, target)
 
         # Convert to indices for binary metrics
         if target.dim() > 1 and target.is_floating_point():
@@ -76,8 +102,10 @@ class Metrics:
     def compute(self):
         res = self.collection.compute()
         res["pairwise_acc"] = self.pairwise_acc.compute()
+        res["acc"] = self.tie_aware_acc.compute()
         return res
 
     def reset(self):
         self.collection.reset()
         self.pairwise_acc.reset()
+        self.tie_aware_acc.reset()

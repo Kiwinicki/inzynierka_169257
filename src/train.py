@@ -4,6 +4,73 @@ from src.trainer import Trainer
 from src.hooks import EarlyStoppingHook, CheckpointHook, LoggerHook
 from pathlib import Path
 from datetime import datetime
+from src.dataset import CLASS_LABELS
+import matplotlib.pyplot as plt
+import numpy as np
+from torch.utils.tensorboard import SummaryWriter
+
+
+def create_conf_matrix(conf_mat):
+    fig, ax = plt.subplots(figsize=(10, 8))
+    im = ax.imshow(conf_mat, interpolation="nearest", cmap=plt.cm.Blues)
+    ax.figure.colorbar(im, ax=ax)
+
+    ax.set(
+        xticks=np.arange(conf_mat.shape[1]),
+        yticks=np.arange(conf_mat.shape[0]),
+        xticklabels=CLASS_LABELS,
+        yticklabels=CLASS_LABELS,
+        title="Confusion Matrix",
+        ylabel="True label",
+        xlabel="Predicted label",
+    )
+
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    thresh = conf_mat.max() / 2.0
+    for i in range(conf_mat.shape[0]):
+        for j in range(conf_mat.shape[1]):
+            ax.text(
+                j,
+                i,
+                format(conf_mat[i, j], ".0f"),
+                ha="center",
+                va="center",
+                color="white"
+                if conf_mat[i, j] > thresh
+                else "black",  # For readability
+            )
+    fig.tight_layout()
+    return fig
+
+
+def evaluate_model(trainer, logger_hook, args):
+    print("Starting evaluation...")
+    eval_dir = Path(logger_hook.writer.log_dir) / "eval"
+    eval_writer = SummaryWriter(log_dir=eval_dir)
+
+    results = trainer.test()
+
+    conf_mat = results["conf_mat"].cpu().numpy()
+    fig = create_conf_matrix(conf_mat)
+    eval_writer.add_figure("confusion_matrix", fig)
+    plt.close(fig)
+
+    # get only scalar metrics
+    metrics = {k: v.item() for k, v in results.items() if v.numel() == 1}
+
+    hparams = {
+        "num_epochs": args.num_epochs,
+        "batch_size": args.batch_size,
+        "lr": args.lr,
+        "base_ch": args.base_ch,
+        "arch": args.arch,
+        "oversample": args.oversample,
+    }
+
+    eval_writer.add_hparams(hparams, metric_dict=metrics, run_name=".")
+    eval_writer.close()
+    print(f"Evaluation results logged to {eval_dir}")
 
 
 if __name__ == "__main__":
@@ -20,7 +87,15 @@ if __name__ == "__main__":
     parser.add_argument("--run_name", type=str)
     args = parser.parse_args()
 
-    run_name = f"{args.arch}-{args.base_ch}ch-{args.lr:.2e}lr-{datetime.now().strftime('%y%m%d-%H:%M')}"
+    if args.run_name:
+        run_name = args.run_name
+    else:
+        run_name = f"{args.arch}-{args.base_ch}ch-{args.lr:.2e}lr"
+        for arg, value in sorted(vars(args).items()):  # add boolean flags to run name
+            if isinstance(value, bool) and value:
+                run_name += f"-{arg}"
+        run_name += f"-{datetime.now().strftime('%y%m%d-%H:%M')}"
+    args.run_name = run_name
 
     logger_hook = LoggerHook(Path("runs") / run_name)
     early_stopping_hook = EarlyStoppingHook(patience=5)
@@ -31,5 +106,6 @@ if __name__ == "__main__":
 
     try:
         trainer.train()
+        evaluate_model(trainer, logger_hook, args)
     finally:
         logger_hook.close()

@@ -62,15 +62,11 @@ class CheckpointHook(Hook):
     def on_valid_epoch_end(self, trainer, state):
         if not self.save_best_only or state.valid_loss < self.best_loss:
             self.best_loss = state.valid_loss
-            path = (
-                self.save_dir
-                / f"{trainer.args.arch}-ep{state.epoch}-loss{state.valid_loss:.3f}.ckpt"
-            )
+            path = self.save_dir / f"{trainer.args.run_name}.ckpt"
 
             checkpoint = {
                 "state_dict": trainer.model.state_dict(),
-                "arch": trainer.args.arch,
-                "base_ch": trainer.args.base_ch,
+                "args": vars(trainer.args),
                 "epoch": state.epoch,
                 "loss": state.valid_loss,
             }
