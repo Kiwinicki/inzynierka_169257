@@ -39,6 +39,11 @@ class FERDataset(Dataset):
         self.data["pixels"] = self.data["pixels"].apply(self._parse_pixels)
         self.transform = transform
 
+    def get_class_weights(self, beta=0.999):
+        vote_sums = self.data[CLASS_LABELS].sum(axis=0)
+        weights = (1 - beta) / (1 - beta ** vote_sums) # "Effective Number of Samples"
+        return torch.tensor(weights.values, dtype=torch.float32)
+
     @staticmethod
     def _parse_pixels(pixels_str):
         pixels = np.array(pixels_str.split(), dtype=np.uint8)

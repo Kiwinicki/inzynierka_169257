@@ -27,6 +27,7 @@ class Trainer:
         self.criterion = nn.KLDivLoss(reduction="batchmean")
         self.opt = torch.optim.Adam(self.model.parameters(), lr=args.lr)
         self.metrics = Metrics(num_classes=len(CLASS_LABELS), device=self.device)
+        self.class_weights = self.train_loader.dataset.get_class_weights().to(self.device)
 
     def _call_hook(self, event, **kwargs):
         for hook in self.hooks:
@@ -38,7 +39,17 @@ class Trainer:
             images, labels = images.to(self.device), labels.to(self.device)
             self.opt.zero_grad()
             outputs = self.model(images)
-            loss = self.criterion(torch.log_softmax(outputs, dim=1), labels)
+
+            # loss = self.criterion(torch.log_softmax(outputs, dim=1), labels)
+
+            log_q = torch.log_softmax(outputs, dim=1)
+            kl_per_sample = torch.nn.functional.kl_div(log_q, labels, reduction="none").sum(dim=1)
+            
+            argmax_class = torch.argmax(labels, dim=1)
+            sample_w = self.class_weights[argmax_class]
+            
+            loss = (sample_w * kl_per_sample).mean()
+            
             loss.backward()
             self.opt.step()
 
