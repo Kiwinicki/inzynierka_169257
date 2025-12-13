@@ -22,7 +22,7 @@ class Hook:
     def on_train_end(self, trainer, state):
         pass
 
-    def on_train_step_end(self, trainer, state, loss):
+    def on_train_step_end(self, trainer, state, **metrics):
         pass
 
     def on_train_epoch_end(self, trainer, state):
@@ -62,15 +62,11 @@ class CheckpointHook(Hook):
     def on_valid_epoch_end(self, trainer, state):
         if not self.save_best_only or state.valid_loss < self.best_loss:
             self.best_loss = state.valid_loss
-            path = (
-                self.save_dir
-                / f"{trainer.args.arch}-ep{state.epoch}-loss{state.valid_loss:.3f}.ckpt"
-            )
+            path = self.save_dir / f"{trainer.args.run_name}.ckpt"
 
             checkpoint = {
                 "state_dict": trainer.model.state_dict(),
-                "arch": trainer.args.arch,
-                "base_ch": trainer.args.base_ch,
+                "args": vars(trainer.args),
                 "epoch": state.epoch,
                 "loss": state.valid_loss,
             }
@@ -108,35 +104,29 @@ class LoggerHook(Hook):
                     layer.register_forward_hook(get_activation_hook(name))
                 )
 
-    def on_train_begin(self, trainer, state):
+    def on_train_begin(self, trainer, state, **metrics):
         self.register_activation_hooks(trainer.model)
+        self.writer.add_hparams(
+            {**vars(trainer.args)},
+            metric_dict={},
+            run_name=".",
+        )
 
-    def on_train_step_end(self, trainer, state, loss):
+    def on_train_step_end(self, trainer, state, **metrics):
         self.current_step = state.global_step
         if state.global_step % 100 == 0:
-            self.writer.add_scalar("train/loss", loss.item(), state.global_step)
+            for name, value in metrics.items():
+                if isinstance(value, torch.Tensor):
+                    value = value.item()
+                self.writer.add_scalar(f"train/{name}", value, state.global_step)
             self._log_weights(trainer.model, state.global_step)
 
-    def on_train_epoch_end(self, trainer, state):
+    def on_train_epoch_end(self, trainer, state, **metrics):
         self.writer.flush()
 
-    def on_valid_epoch_end(self, trainer, state):
+    def on_valid_epoch_end(self, trainer, state, **metrics):
         self.writer.add_scalar("valid/acc", state.valid_acc, state.global_step)
         self.writer.add_scalar("valid/loss", state.valid_loss, state.global_step)
-        self.writer.flush()
-
-    def on_train_end(self, trainer, state):
-        self.writer.add_hparams(
-            {
-                "num_epochs": state.epoch,
-                "batch_size": trainer.args.batch_size,
-                "lr": trainer.args.lr,
-                "base_ch": trainer.args.base_ch,
-                "arch": trainer.args.arch,
-            },
-            {"final/valid_loss": state.valid_loss, "final/valid_acc": state.valid_acc},
-            run_name="final",
-        )
         self.writer.flush()
 
     def _log_weights(self, model, step):

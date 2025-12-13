@@ -129,12 +129,13 @@ class BaseCNN(nn.Module):
         checkpoint = torch.load(checkpoint_path, map_location="cpu")
 
         state_dict = checkpoint["state_dict"]
-        arch = checkpoint.get("arch", kwargs.get("arch", "plain"))
-        base_ch = checkpoint.get("base_ch", kwargs.get("base_ch", 32))
+        args = checkpoint.get("args", {})
+        arch = args.get("arch", kwargs.get("arch", "plain"))
+        base_ch = args.get("base_ch", kwargs.get("base_ch", 32))
         num_classes = kwargs.get("num_classes", len(CLASS_LABELS))
 
         model_cls = ARCHITECTURES[arch]
         model = model_cls(base_ch=base_ch, num_classes=num_classes)
         model.load_state_dict(state_dict)
 
-        return model, {"arch": arch, "base_ch": base_ch}
+        return model, args
