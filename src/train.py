@@ -46,31 +46,23 @@ def create_conf_matrix(conf_mat):
 
 def evaluate_model(trainer, logger_hook, args):
     print("Starting evaluation...")
-    eval_dir = Path(logger_hook.writer.log_dir) / "eval"
-    eval_writer = SummaryWriter(log_dir=eval_dir)
+    writer = logger_hook.writer
 
     results = trainer.test()
 
     conf_mat = results["conf_mat"].cpu().numpy()
     fig = create_conf_matrix(conf_mat)
-    eval_writer.add_figure("confusion_matrix", fig)
+    writer.add_figure("test/confusion_matrix", fig, global_step=trainer.state.global_step)
     plt.close(fig)
 
     # get only scalar metrics
     metrics = {k: v.item() for k, v in results.items() if v.numel() == 1}
 
-    hparams = {
-        "num_epochs": args.num_epochs,
-        "batch_size": args.batch_size,
-        "lr": args.lr,
-        "base_ch": args.base_ch,
-        "arch": args.arch,
-        "oversample": args.oversample,
-    }
+    for name, value in metrics.items():
+        writer.add_scalar(f"test/{name}", value, global_step=trainer.state.global_step)
 
-    eval_writer.add_hparams(hparams, metric_dict=metrics, run_name=".")
-    eval_writer.close()
-    print(f"Evaluation results logged to {eval_dir}")
+    writer.flush()
+    print(f"Evaluation results logged to {writer.log_dir}")
 
 
 if __name__ == "__main__":

@@ -91,7 +91,7 @@ class Metrics:
         self.pairwise_acc.update(preds, target)
         self.tie_aware_acc.update(preds, target)
 
-        # Convert to indices for binary metrics
+        # convert to indices for binary metrics
         if target.dim() > 1 and target.is_floating_point():
             target_indices = torch.argmax(target, dim=1)
         else:

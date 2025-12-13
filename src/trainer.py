@@ -4,7 +4,7 @@ from .models import ARCHITECTURES
 from .data_loaders import get_data_loaders
 from src.dataset import CLASS_LABELS
 from .hooks import TrainerState
-from src.metrics import Metrics
+from src.metrics import Metrics, TieAwareAccuracy
 
 
 class Trainer:
@@ -33,6 +33,8 @@ class Trainer:
 
         self.opt = torch.optim.Adam(self.model.parameters(), lr=args.lr)
         self.metrics = Metrics(num_classes=len(CLASS_LABELS), device=self.device)
+        self.train_acc = TieAwareAccuracy().to(self.device)
+        self.valid_acc = TieAwareAccuracy().to(self.device)
         self.class_weights = self.train_loader.dataset.get_class_weights().to(
             self.device
         )
@@ -51,6 +53,7 @@ class Trainer:
 
     def train_epoch(self):
         self.model.train()
+        self.train_acc.reset()
         for images, labels in self.train_loader:
             images, labels = images.to(self.device), labels.to(self.device)
             self.opt.zero_grad()
@@ -62,16 +65,18 @@ class Trainer:
             loss.backward()
             self.opt.step()
 
+            # accuracy for logging
+            acc = self.train_acc(outputs, labels) * 100
+
             self.state.global_step += 1
-            self._call_hook("on_train_step_end", loss=loss)
+            self._call_hook("on_train_step_end", loss=loss, acc=acc)
 
         self._call_hook("on_train_epoch_end")
 
     def valid_epoch(self, curr_ep):
         self.model.eval()
+        self.valid_acc.reset()
         valid_loss = 0.0
-        correct = 0
-        total = 0
 
         with torch.no_grad():
             for images, labels in self.valid_loader:
@@ -79,12 +84,10 @@ class Trainer:
                 outputs = self.model(images)
                 loss = self.criterion(torch.log_softmax(outputs, dim=1), labels)
                 valid_loss += loss.item()
-                _, predicted = torch.max(outputs.data, 1)
-                true_labels = torch.argmax(labels, dim=1)
-                total += labels.size(0)
-                correct += (predicted == true_labels).sum().item()
+                
+                self.valid_acc.update(outputs, labels)
 
-        self.state.valid_acc = 100 * correct / total
+        self.state.valid_acc = self.valid_acc.compute() * 100
         self.state.valid_loss = valid_loss / len(self.valid_loader)
         self.state.epoch = curr_ep
 
