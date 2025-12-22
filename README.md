@@ -17,17 +17,21 @@ zachowań konsumenckich.
 
 ## Setup
 1. Clone the repo
-2. Install dependencies: `pip install .`
-3. Download datasets: Run `python src/download_data.py`
-4. Run dataset cleaning: Run `python src/clean_data.py`
-5. Train models: Run `python -m src.train`
-6. Show training logs: Run `tensorboard --logdir runs/`
-7. Launch app: `gradio app.py`
+2. create virtual environment: `python -m venv .venv` or `uv venv --python 3.12 --seed`
+3. activate virtual environment: `source .venv/bin/activate` (Linux/MacOS) or `.venv\Scripts\activate` (Windows)
+4. Install dependencies: `pip install .` or `uv sync`
+5. Download datasets: Run `python src/download_data.py`
+6. Run dataset cleaning: Run `python src/clean_data.py`
+7. Train models: Run `python -m src.train <optional_arguments>` (see `python -m src.train --help` for more info)
+8. Show training logs: Run `tensorboard --logdir runs/`
+9. Launch app: `gradio app.py`
+10. Run unit tests: `python -m pytest`
 
 ## Project Structure
 - `data/`: Datasets
 - `models/`: Trained model weights
 - `src/`: Source code
+- `tests/`: Unit tests
 
 ## TODO
 
