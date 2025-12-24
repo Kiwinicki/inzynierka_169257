@@ -19,9 +19,9 @@ zachowań konsumenckich.
 1. Clone the repo
 2. create virtual environment: `python -m venv .venv` (python 3.12) or `uv venv --python 3.12 --seed`
 3. activate virtual environment: `source .venv/bin/activate` (Linux/MacOS) or `.venv\Scripts\activate` (Windows)
-4. Install dependencies: `pip install .` or `uv sync`
+4. Install dependencies: `python -m pip install .` or `uv sync`
 5. Download datasets: Run `python src/download_data.py`
-6. Run dataset cleaning: Run `python src/clean_data.py`
+6. Run dataset cleaning: Run `python -m src.clean_data`
 7. Train models: Run `python -m src.train <optional_arguments>` (see `python -m src.train --help` for more info)
 8. Show training logs: Run `tensorboard --logdir runs/`
 9. Launch app: `gradio app.py`
