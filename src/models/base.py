@@ -15,7 +15,7 @@ class BaseCNN(nn.Module):
     Handles model-agnostic parts:
       - Profiling: params, GFLOPs, activation memory, model size (MB)
       - Preprocessing pipeline for single-image inference
-      - Optional: simple predict()
+      - preprocess_image() and predict() for app.py
     """
 
     def __init__(
