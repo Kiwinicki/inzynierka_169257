@@ -1,0 +1,28 @@
+plainnet:
+    arch: plainnet
+    base_ch: 64
+    stages: [2, 2, 2, 2]
+    num_epochs: 100
+    batch_size: 128
+    lr: 3e-4
+resnet:
+    arch: resnet
+    base_ch: 64
+    stages: [2, 2, 2, 2]
+    num_epochs: 100
+    batch_size: 128
+    lr: 3e-4
+resnext:
+    arch: resnext
+    base_ch: 64
+    stages: [2, 2, 2, 2]
+    num_epochs: 100
+    batch_size: 128
+    lr: 3e-4
+convnext:
+    arch: convnext
+    base_ch: 64
+    stages: [2, 2, 2, 2]
+    num_epochs: 100
+    batch_size: 128
+    lr: 3e-4

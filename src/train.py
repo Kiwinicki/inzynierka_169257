@@ -1,12 +1,14 @@
 import argparse
 from src.models import ARCHITECTURES
 from src.trainer import Trainer
-from src.hooks import EarlyStoppingHook, CheckpointHook, LoggerHook
+from src.hooks import EarlyStoppingHook, CheckpointHook, LoggerHook, LinearWarmupHook
 from pathlib import Path
 from datetime import datetime
 from src.dataset import CLASS_LABELS
 import matplotlib.pyplot as plt
 import numpy as np
+
+plt.switch_backend("Agg")  # make plotting more robust (not dependent on GUI)
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -52,7 +54,9 @@ def evaluate_model(trainer, logger_hook, args):
 
     conf_mat = results["conf_mat"].cpu().numpy()
     fig = create_conf_matrix(conf_mat)
-    writer.add_figure("test/confusion_matrix", fig, global_step=trainer.state.global_step)
+    writer.add_figure(
+        "test/confusion_matrix", fig, global_step=trainer.state.global_step
+    )
     plt.close(fig)
 
     # get only scalar metrics
@@ -77,6 +81,8 @@ if __name__ == "__main__":
     parser.add_argument("--oversample", action="store_true")
     parser.add_argument("--class_weighting", action="store_true")
     parser.add_argument("--run_name", type=str)
+    parser.add_argument("--warmup_epochs", type=int, default=1)
+    parser.add_argument("--stages", type=int, nargs="+", default=None)
     args = parser.parse_args()
 
     if args.run_name:
@@ -90,9 +96,10 @@ if __name__ == "__main__":
     args.run_name = run_name
 
     logger_hook = LoggerHook(Path("runs") / run_name)
-    early_stopping_hook = EarlyStoppingHook(patience=5)
+    # early_stopping_hook = EarlyStoppingHook(patience=5)
     checkpoint_hook = CheckpointHook(save_dir="./checkpoints")
-    hooks = [logger_hook, early_stopping_hook, checkpoint_hook]
+    warmup_hook = LinearWarmupHook(num_epochs=args.warmup_epochs)
+    hooks = [logger_hook, checkpoint_hook, warmup_hook]  # , early_stopping_hook
 
     trainer = Trainer(args, hooks=hooks)
 

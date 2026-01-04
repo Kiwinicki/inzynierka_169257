@@ -53,7 +53,7 @@ class ResNet(BaseCNN):
             in_ch = out_ch
 
         self.head = nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)), nn.Flatten(), nn.Linear(dims[-1], num_classes)
+            nn.AdaptiveAvgPool2d((1, 1)), nn.Flatten(), nn.Linear(in_ch, num_classes)
         )
 
     def forward(self, x):
