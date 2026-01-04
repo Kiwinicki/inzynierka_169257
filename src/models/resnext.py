@@ -35,7 +35,7 @@ class ResNeXtBlock(nn.Module):
 class ResNeXt(BaseCNN):
     def __init__(self, base_ch, num_classes, groups=32, stages=[2, 2, 2, 2]):
         super().__init__()
-        dims = [base_ch * 4, base_ch * 8, base_ch * 16, base_ch * 32]
+        dims = [base_ch * 4, base_ch * 8, base_ch * 16, base_ch * 32] # hardcode dims widening
 
         self.stem = nn.Sequential(
             nn.Conv2d(1, base_ch, 3, 1, 1, bias=False),
