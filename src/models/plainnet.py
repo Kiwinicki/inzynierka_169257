@@ -3,29 +3,18 @@ from torch import nn
 from .base import BaseCNN
 
 
-class ResNetBlock(nn.Module):
+class PlainBlock(nn.Module):
     def __init__(self, in_ch, out_ch, stride=1):
         super().__init__()
-        self.conv1 = nn.Conv2d(in_ch, out_ch, 3, stride, 1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_ch)
-        self.conv2 = nn.Conv2d(out_ch, out_ch, 3, 1, 1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_ch)
-
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_ch != out_ch:
-            self.shortcut = nn.Sequential(
-                nn.Conv2d(in_ch, out_ch, 1, stride, bias=False),
-                nn.BatchNorm2d(out_ch),
-            )
+        self.conv = nn.Conv2d(in_ch, out_ch, 3, stride, 1, bias=False)
+        self.bn = nn.BatchNorm2d(out_ch)
+        self.act = nn.ReLU()
 
     def forward(self, x):
-        out = torch.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
-        return torch.relu(out)
+        return self.act(self.bn(self.conv(x)))
 
 
-class ResNet(BaseCNN):
+class PlainNet(BaseCNN):
     def __init__(self, base_ch, num_classes, stages=[2, 2, 2, 2]):
         super().__init__()
         dims = [base_ch, base_ch * 2, base_ch * 4, base_ch * 8]
@@ -45,7 +34,7 @@ class ResNet(BaseCNN):
             blocks = []
             for j in range(num_blocks):
                 blocks.append(
-                    ResNetBlock(
+                    PlainBlock(
                         in_ch if j == 0 else out_ch, out_ch, stride if j == 0 else 1
                     )
                 )
