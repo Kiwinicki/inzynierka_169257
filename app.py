@@ -3,11 +3,21 @@ import torch
 from torchvision import transforms
 from PIL import Image
 import numpy as np
-from src.models import PlainCNN, ResNet
+from src.models import PlainNet, ResNet, ResNeXt, ConvNeXt
 from src.dataset import CLASS_LABELS
 
-model = ResNet(base_ch=32, num_classes=len(CLASS_LABELS))
-model.load_state_dict(torch.load("checkpoints/resnet-ep17-loss0.388-final.ckpt"))
+checkpoint = torch.load("checkpoints/resnet.ckpt", map_location="cpu")
+args = checkpoint["args"]
+
+init_kwargs = {
+    "base_ch": args.get("base_ch", 32),
+    "num_classes": len(CLASS_LABELS),
+}
+if args.get("stages"):
+    init_kwargs["stages"] = args["stages"]
+
+model = ResNet(**init_kwargs)
+model.load_state_dict(checkpoint["state_dict"])
 model.eval()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
