@@ -1,3 +1,15 @@
+---
+title: inzynierka_169257
+emoji: 🤖
+colorFrom: indigo
+colorTo: purple
+sdk: gradio
+sdk_version: "6.2.0"
+app_file: app.py
+pinned: false
+python_version: "3.12.12"
+---
+
 # Title
 
 orig. Rozpoznawanie emocji na obrazach z użyciem konwolucyjnych sieci neuronowych (ang. Emotion Recognition on images using Convolutional Neural Networks).
