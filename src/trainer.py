@@ -14,13 +14,19 @@ class Trainer:
         self.state = TrainerState()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        if torch.cuda.is_available():
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            torch.set_float32_matmul_precision("high")
+
         if model is not None:
             self.model = model.to(self.device)
         else:
             model_cls = ARCHITECTURES[args.arch]
-            self.model = model_cls(
-                base_ch=args.base_ch, num_classes=len(CLASS_LABELS)
-            ).to(self.device)
+            kwargs = {"base_ch": args.base_ch, "num_classes": len(CLASS_LABELS)}
+            if args.stages:
+                kwargs["stages"] = args.stages
+            self.model = model_cls(**kwargs).to(self.device)
 
         self.train_loader, self.valid_loader, self.test_loader = get_data_loaders(
             batch_size=args.batch_size, oversample=getattr(args, "oversample", False)
@@ -31,13 +37,18 @@ class Trainer:
         else:
             self.criterion = nn.KLDivLoss(reduction="batchmean")
 
-        self.opt = torch.optim.Adam(self.model.parameters(), lr=args.lr)
+        self.opt = torch.optim.AdamW(
+            self.model.parameters(), lr=args.lr, weight_decay=0.05
+        )
         self.metrics = Metrics(num_classes=len(CLASS_LABELS), device=self.device)
         self.train_acc = TieAwareAccuracy().to(self.device)
         self.valid_acc = TieAwareAccuracy().to(self.device)
         self.class_weights = self.train_loader.dataset.get_class_weights().to(
             self.device
         )
+
+        self.use_amp = getattr(args, "use_amp", True) and self.device.type == "cuda"
+        self.scaler = torch.amp.GradScaler("cuda", enabled=self.use_amp)
 
     def _call_hook(self, event, **kwargs):
         for hook in self.hooks:
@@ -52,25 +63,34 @@ class Trainer:
         return (sample_w * kl_per_sample).mean()
 
     def train_epoch(self):
+        self._call_hook("on_train_epoch_begin")
         self.model.train()
         self.train_acc.reset()
+        total_loss = 0.0
+
         for images, labels in self.train_loader:
             images, labels = images.to(self.device), labels.to(self.device)
             self.opt.zero_grad()
-            outputs = self.model(images)
 
-            log_q = torch.log_softmax(outputs, dim=1)
-            loss = self.criterion(log_q, labels)
+            with torch.autocast(
+                device_type=self.device.type, dtype=torch.float16, enabled=self.use_amp
+            ):
+                outputs = self.model(images)
+                log_q = torch.log_softmax(outputs, dim=1)
+                loss = self.criterion(log_q, labels)
 
-            loss.backward()
-            self.opt.step()
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.opt)
+            self.scaler.update()
 
-            # accuracy for logging
+            total_loss += loss.item()
             acc = self.train_acc(outputs, labels) * 100
 
             self.state.global_step += 1
             self._call_hook("on_train_step_end", loss=loss, acc=acc)
 
+        self.state.train_acc = self.train_acc.compute() * 100
+        self.state.train_loss = total_loss / len(self.train_loader)
         self._call_hook("on_train_epoch_end")
 
     def valid_epoch(self, curr_ep):
@@ -81,10 +101,16 @@ class Trainer:
         with torch.no_grad():
             for images, labels in self.valid_loader:
                 images, labels = images.to(self.device), labels.to(self.device)
-                outputs = self.model(images)
-                loss = self.criterion(torch.log_softmax(outputs, dim=1), labels)
+
+                with torch.autocast(
+                    device_type=self.device.type,
+                    dtype=torch.float16,
+                    enabled=self.use_amp,
+                ):
+                    outputs = self.model(images)
+                    loss = self.criterion(torch.log_softmax(outputs, dim=1), labels)
+
                 valid_loss += loss.item()
-                
                 self.valid_acc.update(outputs, labels)
 
         self.state.valid_acc = self.valid_acc.compute() * 100
@@ -92,7 +118,7 @@ class Trainer:
         self.state.epoch = curr_ep
 
         print(
-            f"Valid epoch {curr_ep} acc: {self.state.valid_acc:.2f}, loss: {self.state.valid_loss:.3f}"
+            f"epoch {curr_ep} Valid acc: {self.state.valid_acc:.2f}, loss: {self.state.valid_loss:.3f} | Train acc: {self.state.train_acc:.2f}, loss: {self.state.train_loss:.3f}"
         )
 
         self._call_hook("on_valid_epoch_end")
@@ -116,7 +142,14 @@ class Trainer:
         with torch.no_grad():
             for images, labels in self.test_loader:
                 images, labels = images.to(self.device), labels.to(self.device)
-                outputs = self.model(images)
+
+                with torch.autocast(
+                    device_type=self.device.type,
+                    dtype=torch.float16,
+                    enabled=self.use_amp,
+                ):
+                    outputs = self.model(images)
+
                 self.metrics.update(outputs, labels)
 
         results = self.metrics.compute()

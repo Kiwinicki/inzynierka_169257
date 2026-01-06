@@ -51,11 +51,12 @@ class ConvNeXt(BaseCNN):
             blocks.extend([ConvNeXtBlock(dims[i]) for _ in range(num_blocks)])
             self.stages.append(nn.Sequential(*blocks))
 
+        final_dim = dims[len(stages) - 1]
         self.head = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
-            nn.LayerNorm(dims[-1]),
-            nn.Linear(dims[-1], num_classes),
+            nn.LayerNorm(final_dim),
+            nn.Linear(final_dim, num_classes),
         )
 
     def forward(self, x):

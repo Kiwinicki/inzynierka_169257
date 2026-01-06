@@ -1,4 +1,5 @@
 import math
+import time
 import torch
 from pathlib import Path
 import torch.nn as nn
@@ -11,12 +12,16 @@ class TrainerState:
         self.epoch = 0
         self.train_loss = None
         self.valid_loss = None
+        self.train_acc = None
         self.valid_acc = None
         self.should_stop = False
 
 
 class Hook:
     def on_train_begin(self, trainer, state):
+        pass
+
+    def on_train_epoch_begin(self, trainer, state):
         pass
 
     def on_train_end(self, trainer, state):
@@ -87,6 +92,9 @@ class LoggerHook(Hook):
         self.writer = SummaryWriter(log_dir)
         self.activation_hooks = []
         self.current_step = None
+        self.train_start_time = None
+        self.epoch_start_time = None
+        self.epoch_durations = []
 
     def register_activation_hooks(self, model):
         def get_activation_hook(name):
@@ -105,12 +113,21 @@ class LoggerHook(Hook):
                 )
 
     def on_train_begin(self, trainer, state, **metrics):
+        self.train_start_time = time.time()
         self.register_activation_hooks(trainer.model)
+        hparams = vars(trainer.args).copy()
+        for k, v in hparams.items():
+            if isinstance(v, (list, tuple)):
+                hparams[k] = str(v)
+
         self.writer.add_hparams(
-            {**vars(trainer.args)},
+            hparams,
             metric_dict={},
             run_name=".",
         )
+
+    def on_train_epoch_begin(self, trainer, state, **metrics):
+        self.epoch_start_time = time.time()
 
     def on_train_step_end(self, trainer, state, **metrics):
         self.current_step = state.global_step
@@ -120,8 +137,15 @@ class LoggerHook(Hook):
                     value = value.item()
                 self.writer.add_scalar(f"train/{name}", value, state.global_step)
             self._log_weights(trainer.model, state.global_step)
+            self.writer.add_scalar(
+                "train/lr", trainer.opt.param_groups[0]["lr"], state.global_step
+            )
 
     def on_train_epoch_end(self, trainer, state, **metrics):
+        if self.epoch_start_time is not None:
+            duration = time.time() - self.epoch_start_time
+            self.epoch_durations.append(duration)
+            self.writer.add_scalar("time/train_epoch", duration, state.epoch)
         self.writer.flush()
 
     def on_valid_epoch_end(self, trainer, state, **metrics):
@@ -138,3 +162,47 @@ class LoggerHook(Hook):
         for hook in self.activation_hooks:
             hook.remove()
         self.writer.close()
+
+    def on_train_end(self, trainer, state):
+        if self.train_start_time is not None:
+            total_time = time.time() - self.train_start_time
+            self.writer.add_scalar(
+                "time/total_train_time", total_time, state.global_step
+            )
+
+        if self.epoch_durations:
+            mean_duration = sum(self.epoch_durations) / len(self.epoch_durations)
+            self.writer.add_scalar(
+                "time/mean_epoch_duration", mean_duration, state.global_step
+            )
+
+
+class LinearWarmupHook(Hook):
+    def __init__(self, start_lr=None, end_lr=None, num_epochs=None):
+        self.start_lr = start_lr
+        self.end_lr = end_lr
+        self.num_epochs = int(num_epochs)
+
+    def on_train_begin(self, trainer, state, **metrics):
+        if self.start_lr is None:
+            self.start_lr = trainer.args.lr * 0.1
+        if self.end_lr is None:
+            self.end_lr = trainer.args.lr
+        if self.num_epochs is None:
+            self.num_epochs = min(int(trainer.args.num_epochs * 0.1), 10)
+
+        dataset_len = len(trainer.train_loader.dataset)
+        self.n_warmup_steps = (dataset_len // trainer.args.batch_size) * self.num_epochs
+
+        def lr_lambda(step):
+            if step >= self.n_warmup_steps:
+                return self.end_lr / trainer.args.lr
+            return (
+                self.start_lr
+                + (self.end_lr - self.start_lr) * step / self.n_warmup_steps
+            ) / self.end_lr
+
+        self.sched = torch.optim.lr_scheduler.LambdaLR(trainer.opt, lr_lambda=lr_lambda)
+
+    def on_train_step_end(self, trainer, state, **metrics):
+        self.sched.step()

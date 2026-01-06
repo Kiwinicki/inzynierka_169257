@@ -1,9 +1,9 @@
 import pytest
 import torch
-from src.models import ARCHITECTURES, ResNeXt, ConvNeXt
+from src.models import ARCHITECTURES
 
 
-@pytest.mark.parametrize("arch_name", ["plain", "resnet", "resnext", "convnext"])
+@pytest.mark.parametrize("arch_name", list(ARCHITECTURES.keys()))
 def test_model_instantiation(arch_name):
     """Test that models can be instantiated using the factory."""
     model_cls = ARCHITECTURES.get(arch_name)
@@ -13,7 +13,7 @@ def test_model_instantiation(arch_name):
     assert isinstance(model, torch.nn.Module)
 
 
-@pytest.mark.parametrize("arch_name", ["plain", "resnet", "resnext", "convnext"])
+@pytest.mark.parametrize("arch_name", list(ARCHITECTURES.keys()))
 def test_model_forward_pass(arch_name):
     """Test valid forward pass with dummy input."""
     model_cls = ARCHITECTURES[arch_name]
