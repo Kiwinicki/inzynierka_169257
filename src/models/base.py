@@ -135,7 +135,11 @@ class BaseCNN(nn.Module):
         num_classes = kwargs.get("num_classes", len(CLASS_LABELS))
 
         model_cls = ARCHITECTURES[arch]
-        model = model_cls(base_ch=base_ch, num_classes=num_classes)
+        model_kwargs = {"base_ch": base_ch, "num_classes": num_classes}
+        if "stages" in args:
+            model_kwargs["stages"] = args["stages"]
+
+        model = model_cls(**model_kwargs)
         model.load_state_dict(state_dict)
 
         return model, args
