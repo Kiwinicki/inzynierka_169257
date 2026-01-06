@@ -11,11 +11,6 @@ import numpy as np
 plt.switch_backend("Agg")  # make plotting more robust (not dependent on GUI)
 from torch.utils.tensorboard import SummaryWriter
 
-if torch.cuda.is_available():
-    torch.backends.cuda.matmul.allow_tf32 = True
-    torch.backends.cudnn.allow_tf32 = True
-    torch.set_float32_matmul_precision("high")
-
 
 def create_conf_matrix(conf_mat):
     fig, ax = plt.subplots(figsize=(10, 8))

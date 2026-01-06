@@ -14,6 +14,11 @@ class Trainer:
         self.state = TrainerState()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        if torch.cuda.is_available():
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            torch.set_float32_matmul_precision("high")
+
         if model is not None:
             self.model = model.to(self.device)
         else:
