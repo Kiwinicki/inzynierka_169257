@@ -8,6 +8,8 @@ orig. Celem pracy jest stworzenie systemu automatycznej klasyfikacji emocji na p
 bibliotek uczenia maszynowego w Pythonie. Rozwiązanie to znajdzie zastosowanie między innymi w analizie mediów społecznościowych, marketingu oraz badaniach
 zachowań konsumenckich.
 
+You can try demo here: https://huggingface.co/spaces/Kiwinicki/inzynierka_169257
+
 ## Features
 - Advanced data preprocessing and cleaning
 - Multiple CNN architectures: Plain CNN, ResNet, ResNeXt, ConvNeXt
