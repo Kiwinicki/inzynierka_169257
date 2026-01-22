@@ -9,11 +9,9 @@ dependencies = [
     "jupyter",
     "matplotlib",
     "numpy",
-    "opencv-contrib-python",
     "pandas",
     "pillow",
     "requests",
-    "scikit-learn",
     "tabulate",
     "tensorboard",
     "torch",
@@ -21,4 +19,5 @@ dependencies = [
     "torchmetrics",
     "gradio>=6.1.0",
     "pytest>=9.0.2",
+    "seaborn>=0.13.2",
 ]
