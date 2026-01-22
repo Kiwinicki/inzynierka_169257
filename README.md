@@ -43,16 +43,16 @@ You can try demo here: https://huggingface.co/spaces/Kiwinicki/inzynierka_169257
 
 [x] GFLOPs and memory consumption estimation code of each model (training and inference)
 
-[-] Data augmentation
+[x] Data augmentation
 
 [x] Logging with tensorboard
 
 [x] Evaluate models on test set, compute confusion matrices, precision/recall/F1
 
-[ ] Model comparison: accuracy, training/inference speed, memory efficiency
+[x] Model comparison: accuracy, training/inference speed, memory efficiency
 
-[-] Gradio demo app with image upload and prediction (check camera support)
+[x] Gradio demo app with image upload and prediction
 
-[ ] Deploy the app on Hugging Face Spaces with requirements and model files
+[x] Deploy the app on Hugging Face Spaces with requirements and model files
 
-[ ] Final conclusions: best model, best compute/acc model etc. (how each trick contributed to final results)
+[x] Final conclusions: best model, best compute/acc model etc. (how each trick contributed to final results)
