@@ -3,11 +3,10 @@ import torch
 from torchvision import transforms
 from PIL import Image
 import numpy as np
-from src.models import PlainCNN, ResNet
+from src.models.base import BaseCNN
 from src.dataset import CLASS_LABELS
 
-model = ResNet(base_ch=32, num_classes=len(CLASS_LABELS))
-model.load_state_dict(torch.load("checkpoints/resnext.ckpt"))
+model, loaded_args = BaseCNN.from_checkpoint("checkpoints/resnext.ckpt", num_classes=len(CLASS_LABELS))
 model.eval()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -41,17 +40,40 @@ def predict_emotion(image):
     )
 
 
-iface = gr.Interface(
-    fn=predict_emotion,
-    inputs=gr.Image(label="Upload an image"),
-    outputs=[
-        gr.Textbox(label="Predicted Emotion"),
-        gr.Textbox(label="Confidence"),
-        gr.Label(label="Probabilities"),
-    ],
-    title="Emotion Recognition",
-    description="Upload an image to detect the emotion.",
-)
+with gr.Blocks(title="Emotion Recognition") as demo:
+    gr.Markdown("# Emotion Recognition")
+    gr.Markdown("Upload an image to detect the emotion.")
+
+    with gr.Row():
+        with gr.Column():
+            input_image = gr.Image(label="Upload an image", type="numpy")
+            
+            examples = gr.Examples(
+                examples=["sample_happiness.png", "sample_sadness.png", "sample_surprise.png"],
+                inputs=input_image,
+                label="Examples"
+            )
+            
+            submit_btn = gr.Button("Submit", variant="primary")
+            clear_btn = gr.Button("Clear")
+
+        with gr.Column():
+            output_emotion = gr.Textbox(label="Predicted Emotion")
+            output_confidence = gr.Textbox(label="Confidence")
+            output_probs = gr.Label(label="Probabilities")
+
+    submit_btn.click(
+        fn=predict_emotion,
+        inputs=input_image,
+        outputs=[output_emotion, output_confidence, output_probs],
+    )
+    
+    clear_btn.click(
+        lambda: (None, None, None, None),
+        inputs=None,
+        outputs=[input_image, output_emotion, output_confidence, output_probs],
+        queue=False
+    )
 
 if __name__ == "__main__":
-    iface.launch()
+    demo.launch()
