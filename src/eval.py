@@ -63,9 +63,41 @@ if __name__ == "__main__":
         eval_args.class_weighting = False
         eval_args.use_amp = True
 
+        try:
+            if torch.cuda.is_available():
+                model = model.cuda()
+            
+            flops = model.flops()
+            
+            gflops = flops / 1e9
+            
+            act_mem_bytes = model.activation_memory_bytes(is_training=False)
+            act_mem_mb = act_mem_bytes / (1024 * 1024)
+            
+            model_size_bytes = model.model_size_bytes()
+            model_size_mb = model_size_bytes / (1024 * 1024)
+            
+            params = model.num_parameters
+            
+            print(f"  > Params: {params/1e6:.2f}M")
+            print(f"  > GFLOPs: {gflops:.2f}")
+            print(f"  > Peak Activation Mem: {act_mem_mb:.2f} MB")
+            
+        except Exception as e:
+            print(f"Warning: Failed to calculate complexity metrics: {e}")
+            gflops = 0.0
+            act_mem_mb = 0.0
+            model_size_mb = 0.0
+            params = 0
+
         trainer = Trainer(eval_args, model=model)
         metrics = trainer.test()
         clean_metrics = {k: convert_tensor(v) for k, v in metrics.items()}
+        
+        clean_metrics["gflops"] = gflops
+        clean_metrics["activation_mem_mb"] = act_mem_mb
+        clean_metrics["model_size_mb"] = model_size_mb
+        clean_metrics["params_m"] = params / 1e6
         
         ckpt_name = Path(ckpt_path).stem
         results_dict[ckpt_name] = clean_metrics
